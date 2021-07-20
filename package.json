@@ -3,9 +3,20 @@
   "description": "A JavaScript bundler for node.js monorepo applications",
   "version": "0.0.1",
   "main": "dist/index.js",
-  "repository": "https://github.com/pobidowski/monopack",
+  "engineStrict": true,
+  "engines": {
+    "node": ">= 10"
+  },
+  "homepage": "https://github.com/pobidowski/monopack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pobidowski/monopack.git"
+  },
   "author": "Piotr Obidowski <p.obidowski@gmail.com>",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@types/yargs": "^17.0.2",
     "@yarnpkg/lockfile": "^1.1.0",
