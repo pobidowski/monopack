@@ -46,11 +46,11 @@ You can then use it with
 #### Local installation
 Using yarn
 
-`yarn add -D monopack`
+`yarn add -D @pobidowski/monopack`
 
 Or npm
 
-`npm install --save-dev monopack`
+`npm install --save-dev @pobidowski/monopack`
 
 You can then use it on your project
 
