@@ -1,7 +1,7 @@
 {
   "name": "@pobidowski/monopack",
   "description": "A JavaScript bundler for node.js monorepo applications",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "dist/index.js",
   "engineStrict": true,
   "engines": {
@@ -22,6 +22,7 @@
     "@yarnpkg/lockfile": "^1.1.0",
     "chalk": "^4.1.1",
     "file-loader": "^6.2.0",
+    "glob": "^7.1.7",
     "glob-promise": "^4.2.0",
     "sort-json": "^2.0.0",
     "ts-loader": "^9.2.3",
