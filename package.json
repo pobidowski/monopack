@@ -1,0 +1,38 @@
+{
+  "name": "@pobidowski/monopack",
+  "description": "A JavaScript bundler for node.js monorepo applications",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "repository": "https://github.com/pobidowski/monopack",
+  "author": "Piotr Obidowski <p.obidowski@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/yargs": "^17.0.2",
+    "@yarnpkg/lockfile": "^1.1.0",
+    "chalk": "^4.1.1",
+    "file-loader": "^6.2.0",
+    "glob-promise": "^4.2.0",
+    "sort-json": "^2.0.0",
+    "ts-loader": "^9.2.3",
+    "typescript": "^4.3.5",
+    "webpack": "^5.45.1",
+    "yargs": "^17.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^16.3.3",
+    "@types/sort-json": "^2.0.1",
+    "@types/webpack": "^5.28.0",
+    "@types/yarnpkg__lockfile": "^1.1.5",
+    "@typescript-eslint/eslint-plugin": "^4.28.3",
+    "@typescript-eslint/parser": "^4.28.3",
+    "eslint": "^7.30.0",
+    "eslint-plugin-prettier": "^3.4.0",
+    "prettier": "^2.3.2"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "bin": {
+    "monopack": "./bin/monopack.js"
+  }
+}
