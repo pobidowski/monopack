@@ -6,6 +6,7 @@ import { CollectedDependencyInterface } from '../interfaces/CollectedDependencyI
 const cachedPackageJsons: Record<string, any> = {};
 
 export const collectedDependencies: CollectedDependencyInterface[] = [];
+const visitedPeerDependencyContexts: string[] = [];
 
 export const collectDependency = (
   packageName: string,
@@ -30,6 +31,8 @@ export const collectDependency = (
         }
       }
 
+      _collectPeerDependencies(pkg.path, packageName, monorepoRootPath);
+
       collectedDependencies.push({
         packageName,
         context,
@@ -46,11 +49,7 @@ export const collectDependency = (
 };
 
 const _getPackageJsons = (context: string, monorepoRootPath: string): any => {
-  let packageJson = cachedPackageJsons[context];
-
-  if (!packageJson) {
-    packageJson = _getPackageJson(context);
-  }
+  const packageJson = _getPackageJsonCached(context);
 
   if (context !== monorepoRootPath) {
     return [
@@ -60,6 +59,16 @@ const _getPackageJsons = (context: string, monorepoRootPath: string): any => {
   }
 
   return packageJson ? [packageJson] : [];
+};
+
+const _getPackageJsonCached = (context: string) => {
+  let packageJson = cachedPackageJsons[context];
+
+  if (!packageJson) {
+    packageJson = _getPackageJson(context);
+  }
+
+  return packageJson;
 };
 
 const _getPackageJson = (context: string) => {
@@ -92,4 +101,37 @@ const _getPackageJson = (context: string) => {
   }
 
   return undefined;
+};
+
+const _collectPeerDependencies = (
+  context: string,
+  packageName: string,
+  monorepoRootPath: string,
+  initialContext: string = context,
+): void => {
+  const installedPackageDir = path.join(context, 'node_modules', packageName);
+  if(!visitedPeerDependencyContexts.includes(installedPackageDir)) {
+    visitedPeerDependencyContexts.push(installedPackageDir);
+
+    const installedPackagePackageJson = _getPackageJsonCached(
+      installedPackageDir,
+    );
+
+    if (installedPackagePackageJson) {
+      for (const peerDependency of Object.keys(
+        installedPackagePackageJson.peerDependencies,
+      )) {
+        collectDependency(peerDependency, initialContext, monorepoRootPath);
+      }
+    } else {
+      if (context !== monorepoRootPath) {
+        _collectPeerDependencies(
+          path.join(context, '..'),
+          packageName,
+          monorepoRootPath,
+          initialContext,
+        );
+      }
+    }
+  }
 };
