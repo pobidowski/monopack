@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { Configuration } from 'webpack';
 import * as fs from 'fs';
 import sortJson from 'sort-json';
+import TerserPlugin from "terser-webpack-plugin";
 
 // Helpers
 import { Logger } from './helpers/Logger';
@@ -32,6 +33,10 @@ export const main = async ({
   const outputFullPath = path.join(workingPath, config.output);
   const monorepoRootFullPath = path.join(workingPath, config.monorepoRootPath);
   const outputFile = path.basename(inputFile).replace('.ts', '.js');
+  const yarnLockFile: string | null = path.join(
+    monorepoRootFullPath,
+    'yarn.lock',
+  );
 
   Logger.log(`monopack: Build started`);
   Logger.log(`Monorepo root path: ${chalk.cyan(monorepoRootFullPath)}`);
@@ -42,6 +47,11 @@ export const main = async ({
       config.installPackages ? 'Yes' : 'No',
     )}`,
   );
+
+  if(!fs.existsSync(yarnLockFile)) {
+    Logger.error('There is no yarn.lock file in monorepo root path!');
+    process.exit(1);
+  }
 
   const monorepoPackages = [
     ...(await collectMonorepoPackages(
@@ -66,7 +76,7 @@ export const main = async ({
     });
   }
 
-  let webpackConfig: Configuration = config.modifyWebpackConfig({
+  const webpackConfig: Configuration = config.modifyWebpackConfig({
     context: monorepoRootFullPath,
     entry: inputFullPath,
     output: {
@@ -125,7 +135,8 @@ export const main = async ({
       },
     ],
     optimization: {
-      minimize: false,
+      minimize: true,
+      minimizer: [new TerserPlugin()],
     },
   });
 
@@ -147,7 +158,7 @@ export const main = async ({
       }
     }
 
-    process.exit(0);
+    process.exit(1);
   }
 
   Logger.log('monopack: Build package.json started');
@@ -167,12 +178,6 @@ export const main = async ({
   );
 
   Logger.log('monopack: Build package.json finished successfully');
-
-  let yarnLockFile: string | null = path.join(
-    monorepoRootFullPath,
-    'yarn.lock',
-  );
-  yarnLockFile = fs.readFileSync(yarnLockFile) ? yarnLockFile : null;
 
   if (yarnLockFile) {
     Logger.log(

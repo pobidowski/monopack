@@ -1,7 +1,7 @@
 {
   "name": "@pobidowski/monopack",
   "description": "A JavaScript bundler for node.js monorepo applications",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "main": "dist/index.js",
   "engineStrict": true,
   "engines": {
@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@types/yargs": "^17.0.2",
-    "@yarnpkg/lockfile": "^1.1.0",
+    "@yarnpkg/parsers": "^2.4.0",
     "chalk": "^4.1.1",
     "file-loader": "^6.2.0",
     "glob": "^7.1.7",
@@ -33,6 +33,7 @@
   "devDependencies": {
     "@types/node": "^16.3.3",
     "@types/sort-json": "^2.0.1",
+    "@types/terser-webpack-plugin": "^5.0.4",
     "@types/webpack": "^5.28.0",
     "@types/yarnpkg__lockfile": "^1.1.5",
     "@typescript-eslint/eslint-plugin": "^4.28.3",
@@ -44,7 +45,5 @@
   "scripts": {
     "build": "tsc"
   },
-  "bin": {
-    "monopack": "./bin/monopack.js"
-  }
+  "bin": "./bin/monopack.js"
 }

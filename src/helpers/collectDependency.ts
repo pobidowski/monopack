@@ -1,9 +1,9 @@
 import path from 'path';
 import fs from 'fs';
-import * as lockfile from '@yarnpkg/lockfile';
+import { parseSyml } from '@yarnpkg/parsers';
 import { CollectedDependencyInterface } from '../interfaces/CollectedDependencyInterface';
 
-const cachedPackageJsons: Record<string, any> = {};
+const cachedPackageJsons: Record<string, any[]> = {};
 
 export const collectedDependencies: CollectedDependencyInterface[] = [];
 const visitedPeerDependencyContexts: string[] = [];
@@ -17,58 +17,64 @@ export const collectDependency = (
 
   for (let i = 0; i < packages.length; i++) {
     const pkg = packages[i];
-    const packageJsonVersion = pkg.dependencies[packageName];
+    const packageJsonVersion = pkg.dependencies[packageName] || pkg.peerDependencies[packageName];
 
     if (packageJsonVersion) {
-      const packageAndVersion = `${packageName}@${packageJsonVersion}`;
+      const packageAndVersion = `${packageName}@npm:${packageJsonVersion}`;
 
-      let yarnLockMatchingPackage;
+      let yarnLockMatchingPackageVersion = null;
+      let yarnLockMatchingPath = null;
       for (let j = i; j < packages.length; j++) {
         const yarnLock = packages[j].lockFile;
-        if (yarnLock && yarnLock.dependencies[packageAndVersion]) {
-          yarnLockMatchingPackage = yarnLock;
-          break;
+
+        if (yarnLock) {
+          let dependency = packageAndVersion;
+          if(!yarnLock.dependencies[dependency]) {
+            dependency = Object.keys(yarnLock.dependencies).filter((v) => v.includes(',') ? v.split(', ').some(t => t == packageAndVersion) : v === packageAndVersion)[0];
+          }
+
+          if(dependency) {
+            yarnLockMatchingPackageVersion = yarnLock.dependencies[dependency].version;
+            yarnLockMatchingPath = yarnLock.path;
+            break;
+          }
         }
       }
 
-      _collectPeerDependencies(pkg.path, packageName, monorepoRootPath);
+        collectedDependencies.push({
+          packageName,
+          context,
+          declaredVersion: packageJsonVersion,
+          resolvedVersion: yarnLockMatchingPackageVersion,
+          yarnLockPath: yarnLockMatchingPath,
+        });
 
-      collectedDependencies.push({
-        packageName,
-        context,
-        declaredVersion: packageJsonVersion,
-        resolvedVersion: yarnLockMatchingPackage
-          ? yarnLockMatchingPackage.dependencies[packageAndVersion].version
-          : null,
-        yarnLockPath: yarnLockMatchingPackage
-          ? yarnLockMatchingPackage.path
-          : null,
-      });
+      _collectPeerDependencies(pkg.path, packageName, monorepoRootPath);
     }
   }
 };
 
 const _getPackageJsons = (context: string, monorepoRootPath: string): any => {
-  const packageJson = _getPackageJsonCached(context);
+  const packageJsons = _getPackageJsonCached(context);
 
   if (context !== monorepoRootPath) {
     return [
-      ...(packageJson ? [packageJson] : []),
+      ...(packageJsons || []),
       ..._getPackageJsons(path.join(context, '..'), monorepoRootPath),
     ];
   }
 
-  return packageJson ? [packageJson] : [];
+  return packageJsons || [];
 };
 
 const _getPackageJsonCached = (context: string) => {
-  let packageJson = cachedPackageJsons[context];
+  let packageJsons = cachedPackageJsons[context];
 
-  if (!packageJson) {
-    packageJson = _getPackageJson(context);
+  if (!packageJsons) {
+    packageJsons = _getPackageJson(context);
   }
 
-  return packageJson;
+  return packageJsons;
 };
 
 const _getPackageJson = (context: string) => {
@@ -83,24 +89,32 @@ const _getPackageJson = (context: string) => {
     if (fs.existsSync(yarnLockFile)) {
       const lockFileContent = fs.readFileSync(yarnLockFile, 'utf-8');
 
-      const yarnLock = lockfile.parse(lockFileContent);
+      const yarnLock = parseSyml(lockFileContent);
 
       lockFile = {
         path: context,
-        dependencies: yarnLock.object,
+        dependencies: yarnLock,
       };
     }
 
-    return {
+    const packageJson = {
       path: context,
       dependencies: pkgJson.dependencies || {},
       devDependencies: pkgJson.devDependencies || {},
       peerDependencies: pkgJson.peerDependencies || {},
       lockFile,
     };
+
+    if(!cachedPackageJsons[context]) {
+      cachedPackageJsons[context] = [];
+    }
+
+    cachedPackageJsons[context].push(packageJson);
+
+    return cachedPackageJsons[context];
   }
 
-  return undefined;
+  return [];
 };
 
 const _collectPeerDependencies = (
@@ -110,18 +124,22 @@ const _collectPeerDependencies = (
   initialContext: string = context,
 ): void => {
   const installedPackageDir = path.join(context, 'node_modules', packageName);
-  if(!visitedPeerDependencyContexts.includes(installedPackageDir)) {
+  if (!visitedPeerDependencyContexts.includes(installedPackageDir)) {
     visitedPeerDependencyContexts.push(installedPackageDir);
 
     const installedPackagePackageJson = _getPackageJsonCached(
       installedPackageDir,
     );
 
-    if (installedPackagePackageJson) {
-      for (const peerDependency of Object.keys(
-        installedPackagePackageJson.peerDependencies,
-      )) {
-        collectDependency(peerDependency, initialContext, monorepoRootPath);
+    if (installedPackagePackageJson.length) {
+      // cachedPackageJsons[initialContext].push(...installedPackagePackageJson);
+
+      for(let i = 0; i < installedPackagePackageJson.length; i++) {
+        for (const peerDependency of Object.keys(
+          installedPackagePackageJson[i].peerDependencies,
+        )) {
+          collectDependency(peerDependency, initialContext, monorepoRootPath);
+        }
       }
     } else {
       if (context !== monorepoRootPath) {
