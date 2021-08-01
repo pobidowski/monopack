@@ -3,24 +3,24 @@ import chalk from 'chalk';
 import { Configuration } from 'webpack';
 import * as fs from 'fs';
 import sortJson from 'sort-json';
-import TerserPlugin from "terser-webpack-plugin";
+import TerserPlugin from 'terser-webpack-plugin';
 
 // Helpers
 import { Logger } from './helpers/Logger';
 import { readConfigFile } from './helpers/readConfigFile';
 import { build } from './helpers/build';
-import { collectMonorepoPackages } from './helpers/collectMonorepoPackages';
-import { importMatcher, ImportMatcherTypes } from './helpers/importMatcher';
 import {
   collectDependency,
+  CollectDependencyTypes,
   collectedDependencies,
 } from './helpers/collectDependency';
-import { findDependencyConflicts } from './helpers/findDependencyConflicts';
 import { installExternalPackages } from './helpers/installExternalPackages';
 import { convertDependencies } from './helpers/convertDependencies';
 
 // Interfaces
 import { MonopackArgsInterface } from './interfaces/MonopackArgsInterface';
+import { parseSyml } from '@yarnpkg/parsers';
+import { findDependencyConflicts } from './helpers/findDependencyConflicts';
 
 export const main = async ({
   configFile,
@@ -33,7 +33,7 @@ export const main = async ({
   const outputFullPath = path.join(workingPath, config.output);
   const monorepoRootFullPath = path.join(workingPath, config.monorepoRootPath);
   const outputFile = path.basename(inputFile).replace('.ts', '.js');
-  const yarnLockFile: string | null = path.join(
+  const yarnLockFilePath: string | null = path.join(
     monorepoRootFullPath,
     'yarn.lock',
   );
@@ -48,31 +48,23 @@ export const main = async ({
     )}`,
   );
 
-  if(!fs.existsSync(yarnLockFile)) {
+  if (!fs.existsSync(yarnLockFilePath)) {
     Logger.error('There is no yarn.lock file in monorepo root path!');
     process.exit(1);
   }
 
-  const monorepoPackages = [
-    ...(await collectMonorepoPackages(
-      monorepoRootFullPath,
-      'package.json',
-      'workspaces',
-    )),
-    ...(await collectMonorepoPackages(
-      monorepoRootFullPath,
-      'lerna.json',
-      'packages',
-    )),
-  ];
-
-  Logger.log(
-    `Found monorepo packages: ${chalk.cyan(monorepoPackages.join(', '))}`,
+  const yarnLockDependencies = parseSyml(
+    fs.readFileSync(yarnLockFilePath, 'utf-8'),
   );
 
   if (config.externalModules.length) {
     config.externalModules.forEach((em) => {
-      collectDependency(em, path.dirname(inputFullPath), monorepoRootFullPath);
+      collectDependency(
+        em,
+        path.dirname(inputFullPath),
+        monorepoRootFullPath,
+        yarnLockDependencies,
+      );
     });
   }
 
@@ -112,24 +104,21 @@ export const main = async ({
         { context, request }: { context: string; request: string },
         callback: (a?: null, b?: string) => void,
       ) => {
-        const importMatch = importMatcher(
+        if (request === inputFullPath || request.startsWith('.')) {
+          return callback();
+        }
+
+        const importMatch = collectDependency(
           request,
           context,
-          inputFullPath,
-          monorepoPackages,
+          monorepoRootFullPath,
+          yarnLockDependencies,
         );
 
-        switch (importMatch.type) {
-          case ImportMatcherTypes.INLINE:
+        switch (importMatch) {
+          case CollectDependencyTypes.INLINE:
             return callback();
-          case ImportMatcherTypes.IMPORT:
-            if (importMatch.externalDependency) {
-              collectDependency(
-                importMatch.externalDependency.packageName,
-                importMatch.externalDependency.context,
-                monorepoRootFullPath,
-              );
-            }
+          case CollectDependencyTypes.IMPORT:
             return callback(null, `commonjs ${request}`);
         }
       },
@@ -148,7 +137,7 @@ export const main = async ({
     for (let i = 0; i < conflicts.length; i++) {
       const conflict = conflicts[i];
       Logger.error('monopack: Found package conflict:');
-      Logger.log(conflict.packageName);
+      Logger.warning(conflict.packageName);
 
       for (let j = 0; j < conflict.conflict.length; j++) {
         const conflictDetails = conflict.conflict[j];
@@ -179,12 +168,12 @@ export const main = async ({
 
   Logger.log('monopack: Build package.json finished successfully');
 
-  if (yarnLockFile) {
+  if (yarnLockFilePath) {
     Logger.log(
-      `monopack: Will copy yarn.lock from ${chalk.cyan(yarnLockFile)}`,
+      `monopack: Will copy yarn.lock from ${chalk.cyan(yarnLockFilePath)}`,
     );
 
-    fs.copyFileSync(yarnLockFile, path.join(outputFullPath, 'yarn.lock'));
+    fs.copyFileSync(yarnLockFilePath, path.join(outputFullPath, 'yarn.lock'));
   }
 
   if (config.installPackages) {

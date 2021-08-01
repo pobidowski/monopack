@@ -13,16 +13,16 @@ export const findDependencyConflicts = (
     const pkg = collectedDependencies[i];
     if (!packagesVersions[pkg.packageName]) {
       packagesVersions[pkg.packageName] = {
-        version: pkg.resolvedVersion,
+        version: pkg.version,
         context: pkg.context,
       };
     } else {
-      if (packagesVersions[pkg.packageName].version !== pkg.resolvedVersion) {
+      if (packagesVersions[pkg.packageName].version !== pkg.version) {
         conflicts.push({
           packageName: pkg.packageName,
           conflict: [
             packagesVersions[pkg.packageName],
-            { version: pkg.resolvedVersion, context: pkg.context },
+            { version: pkg.version, context: pkg.context },
           ],
         });
       }

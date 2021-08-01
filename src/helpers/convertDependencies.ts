@@ -7,7 +7,7 @@ export const convertDependencies = (
 
   for (let i = 0; i < collectedDependencies.length; i++) {
     output[collectedDependencies[i].packageName] =
-      collectedDependencies[i].resolvedVersion;
+      collectedDependencies[i].version;
   }
 
   return output;

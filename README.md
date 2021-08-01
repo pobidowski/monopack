@@ -22,9 +22,8 @@ It will build:
 ### Requirements
 
  - Node.js >= 10
- - Yarn >= 1.3.2:
-   - Yarn is required to be present for installing the produced dependencies.
-   - It is not mandatory for your project to use it, but bear in mind that the dependencies collection will be deterministic only if your projet uses Yarn.
+ - Yarn >= 2:
+   - Yarn v2 is required to be present for installing the produced dependencies.
 
 ### Installation
 
