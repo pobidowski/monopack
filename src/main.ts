@@ -115,6 +115,8 @@ export const main = async ({
           yarnLockDependencies,
         );
 
+        console.log(request, importMatch);
+
         switch (importMatch) {
           case CollectDependencyTypes.INLINE:
             return callback();
@@ -131,52 +133,52 @@ export const main = async ({
 
   await build(webpackConfig);
 
-  const conflicts = findDependencyConflicts(collectedDependencies);
+  // const conflicts = findDependencyConflicts(collectedDependencies);
+  //
+  // if (conflicts.length) {
+  //   for (let i = 0; i < conflicts.length; i++) {
+  //     const conflict = conflicts[i];
+  //     Logger.error('monopack: Found package conflict:');
+  //     Logger.warning(conflict.packageName);
+  //
+  //     for (let j = 0; j < conflict.conflict.length; j++) {
+  //       const conflictDetails = conflict.conflict[j];
+  //       Logger.log(
+  //         `${chalk.cyan(conflictDetails.version)} (${conflictDetails.context})`,
+  //       );
+  //     }
+  //   }
+  //
+  //   process.exit(1);
+  // }
 
-  if (conflicts.length) {
-    for (let i = 0; i < conflicts.length; i++) {
-      const conflict = conflicts[i];
-      Logger.error('monopack: Found package conflict:');
-      Logger.warning(conflict.packageName);
-
-      for (let j = 0; j < conflict.conflict.length; j++) {
-        const conflictDetails = conflict.conflict[j];
-        Logger.log(
-          `${chalk.cyan(conflictDetails.version)} (${conflictDetails.context})`,
-        );
-      }
-    }
-
-    process.exit(1);
-  }
-
-  Logger.log('monopack: Build package.json started');
-
-  const packageJson = config.modifyPackageJson({
-    name: 'app',
-    version: '0.0.1',
-    main: outputFile,
-    private: true,
-    dependencies: sortJson(convertDependencies(collectedDependencies)),
-    devDependencies: {},
-  });
-
-  fs.writeFileSync(
-    path.join(outputFullPath, 'package.json'),
-    JSON.stringify(packageJson),
-  );
-
-  Logger.log('monopack: Build package.json finished successfully');
-
-  if (yarnLockFilePath) {
-    Logger.log(
-      `monopack: Will copy yarn.lock from ${chalk.cyan(yarnLockFilePath)}`,
-    );
-
-    fs.copyFileSync(yarnLockFilePath, path.join(outputFullPath, 'yarn.lock'));
-  }
-
-  if (config.installPackages) {
-    await installExternalPackages(outputFullPath);
-  }
+  // Logger.log('monopack: Build package.json started');
+  //
+  // const packageJson = config.modifyPackageJson({
+  //   name: 'app',
+  //   version: '0.0.1',
+  //   main: outputFile,
+  //   private: true,
+  //   dependencies: sortJson(convertDependencies(collectedDependencies)),
+  //   devDependencies: {},
+  // });
+  //
+  // fs.writeFileSync(
+  //   path.join(outputFullPath, 'package.json'),
+  //   JSON.stringify(packageJson),
+  // );
+  //
+  // Logger.log('monopack: Build package.json finished successfully');
+  //
+  // if (yarnLockFilePath) {
+  //   Logger.log(
+  //     `monopack: Will copy yarn.lock from ${chalk.cyan(yarnLockFilePath)}`,
+  //   );
+  //
+  //   fs.copyFileSync(yarnLockFilePath, path.join(outputFullPath, 'yarn.lock'));
+  // }
+  //
+  // if (config.installPackages) {
+  //   await installExternalPackages(outputFullPath);
+  // }
 };

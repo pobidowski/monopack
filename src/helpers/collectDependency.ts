@@ -25,21 +25,25 @@ export const collectDependency = (
   let output = CollectDependencyTypes.IMPORT;
 
   if (yarnLockPackagesKeys.length) {
-    const packages = _getPackageJsons(context, monorepoRootPath);
+    const isWorkspace = yarnLockPackagesKeys.filter((t) =>
+      t.includes('workspace'),
+    ).length;
 
-    for (let i = 0; i < packages.length; i++) {
-      const pkg = packages[i];
-      const packageJsonVersion =
-        pkg.dependencies[packageName] || pkg.peerDependencies[packageName];
+    if (isWorkspace) {
+      output = CollectDependencyTypes.INLINE;
+    } else {
+      const packages = _getPackageJsons(context, monorepoRootPath);
 
-      if (packageJsonVersion) {
-        yarnLockPackagesKeys.forEach((t) => {
-          const yarnDep = yarnLockDependencies[t];
+      for (let i = 0; i < packages.length; i++) {
+        const pkg = packages[i];
+        const packageJsonVersion =
+          pkg.dependencies[packageName] || pkg.peerDependencies[packageName];
 
-          if (t.includes(packageJsonVersion)) {
-            if (yarnDep.resolution.includes('workspace')) {
-              output = CollectDependencyTypes.INLINE;
-            } else {
+        if (packageJsonVersion) {
+          yarnLockPackagesKeys.forEach((t) => {
+            const yarnDep = yarnLockDependencies[t];
+
+            if (t.includes(packageJsonVersion)) {
               collectedDependencies.push({
                 packageName,
                 context,
@@ -53,8 +57,8 @@ export const collectDependency = (
                 yarnLockDependencies,
               );
             }
-          }
-        });
+          });
+        }
       }
     }
   }
