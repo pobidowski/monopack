@@ -16,8 +16,7 @@ export function run(): void {
       describe: 'Config file (e.g. monopack.config.js)',
       nargs: 1,
       default: 'monopack.config.js',
-    })
-    .strict().argv as any;
+    }).argv as any;
 
   main({
     inputFile: args.inputFile,
